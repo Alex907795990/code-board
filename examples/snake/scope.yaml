@@ -1,0 +1,223 @@
+version: 1
+sources:
+  - id: page
+    kind: code
+    language: html
+    label: snake.html · 页面骨架与样式
+    path: snake.html:1
+    content: |2+
+      <!doctype html>
+      <html lang="zh-CN">
+      <head>
+        <meta charset="utf-8">
+        <title>贪吃蛇</title>
+        <style>
+          body { width: 480px; margin: 32px auto; background: #272822; color: #f8f8f2; font: 15px/1.6 system-ui; }
+          header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+          h1 { margin: 0; font-size: 24px; }
+          button { padding: 7px 14px; border: 1px solid #75715e; background: #3e3d32; color: inherit; cursor: pointer; }
+          button:hover { background: #49483e; }
+          button:focus-visible, canvas:focus-visible { outline: 2px solid #a6e22e; outline-offset: 3px; }
+          canvas { display: block; border: 1px solid #49483e; }
+          p { margin: 12px 0; }
+          #status { color: #e6db74; }
+        </style>
+      </head>
+      <body>
+        <header>
+          <h1>贪吃蛇</h1>
+          <span>得分：<strong id="score">0</strong></span>
+          <button id="start" type="button">开始游戏</button>
+        </header>
+        <canvas id="board" width="480" height="480" tabindex="0" aria-label="贪吃蛇棋盘，用方向键转向"></canvas>
+        <p id="status" role="status">点击开始游戏。</p>
+        <p>方向键转向。吃到食物会变长；撞墙或撞到身体，游戏结束。</p>
+        <script>
+  - id: state
+    kind: code
+    language: javascript
+    label: snake.html · 画布、坐标与游戏状态
+    path: snake.html:28
+    content: |2+
+      const canvas = document.querySelector("#board");
+      const ctx = canvas.getContext("2d");
+      const scoreText = document.querySelector("#score");
+      const statusText = document.querySelector("#status");
+      const startButton = document.querySelector("#start");
+      const size = 20;
+      const cell = canvas.width / size;
+      let snake = [{ x: 8, y: 10 }, { x: 7, y: 10 }, { x: 6, y: 10 }];
+      let direction = { x: 1, y: 0 };
+      let food = { x: 12, y: 10 };
+      let running = false;
+      let turned = false;
+      
+  - id: paint
+    kind: code
+    language: javascript
+    label: snake.html · paintCell · 画一格
+    path: snake.html:41
+    content: |2+
+      function paintCell(part) {
+        ctx.fillRect(part.x * cell + 1, part.y * cell + 1, cell - 2, cell - 2);
+      }
+      
+  - id: draw
+    kind: code
+    language: javascript
+    label: snake.html · draw · 根据状态重画
+    path: snake.html:45
+    content: |2+
+      function draw() {
+        ctx.fillStyle = "#272822";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (food) {
+          ctx.fillStyle = "#f92672";
+          paintCell(food);
+        }
+        snake.forEach((part, index) => {
+          ctx.fillStyle = index === 0 ? "#a6e22e" : "#749e20";
+          paintCell(part);
+        });
+        scoreText.textContent = String(snake.length - 3);
+      }
+      
+  - id: food
+    kind: code
+    language: javascript
+    label: snake.html · placeFood · 找空位
+    path: snake.html:59
+    content: |2+
+      function placeFood() {
+        const empty = [];
+        for (let y = 0; y < size; y += 1) {
+          for (let x = 0; x < size; x += 1) {
+            if (!snake.some(part => part.x === x && part.y === y)) {
+              empty.push({ x, y });
+            }
+          }
+        }
+        if (empty.length === 0) return null;
+        return empty[Math.floor(Math.random() * empty.length)];
+      }
+      
+  - id: finish
+    kind: code
+    language: javascript
+    label: snake.html · finish · 结束本局
+    path: snake.html:72
+    content: |2+
+      function finish(message) {
+        running = false;
+        statusText.textContent = message + " 点击重新开始。";
+        draw();
+      }
+      
+  - id: tick
+    kind: code
+    language: javascript
+    label: snake.html · tick · 前进一步
+    path: snake.html:78
+    content: |2+
+      function tick() {
+        if (!running) return;
+        turned = false;
+        const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+        const eating = head.x === food.x && head.y === food.y;
+        const body = eating ? snake : snake.slice(0, -1);
+        const hitWall = head.x < 0 || head.x >= size || head.y < 0 || head.y >= size;
+        const hitBody = body.some(part => part.x === head.x && part.y === head.y);
+        if (hitWall || hitBody) {
+          finish(hitWall ? "撞墙了。" : "撞到身体了。");
+          return;
+        }
+        snake.unshift(head);
+        if (eating) {
+          food = placeFood();
+          if (food === null) {
+            finish("你填满了棋盘，赢了！");
+            return;
+          }
+        } else {
+          snake.pop();
+        }
+        draw();
+      }
+      
+  - id: input
+    kind: code
+    language: javascript
+    label: snake.html · 方向键输入
+    path: snake.html:103
+    content: |2+
+      canvas.addEventListener("keydown", event => {
+        const directions = {
+          ArrowUp: { x: 0, y: -1 },
+          ArrowDown: { x: 0, y: 1 },
+          ArrowLeft: { x: -1, y: 0 },
+          ArrowRight: { x: 1, y: 0 }
+        };
+        const requested = directions[event.key];
+        if (!requested) return;
+        event.preventDefault();
+        if (!running || turned) return;
+        if (requested.x === -direction.x && requested.y === -direction.y) return;
+        direction = requested;
+        turned = true;
+      });
+      
+  - id: start
+    kind: code
+    language: javascript
+    label: snake.html · start · 开始新的一局
+    path: snake.html:119
+    content: |2+
+      function start() {
+        snake = [{ x: 8, y: 10 }, { x: 7, y: 10 }, { x: 6, y: 10 }];
+        direction = { x: 1, y: 0 };
+        food = { x: 12, y: 10 };
+        running = true;
+        turned = false;
+        statusText.textContent = "方向键转向，吃掉粉色食物。";
+        startButton.textContent = "重新开始";
+        canvas.focus();
+        draw();
+      }
+      
+  - id: boot
+    kind: code
+    language: html
+    label: snake.html · 连接按钮、时钟与首次绘制
+    path: snake.html:131
+    content: |2+
+      startButton.addEventListener("click", start);
+      setInterval(tick, 140);
+      draw();
+        </script>
+      </body>
+      </html>
+  - id: first-tick
+    kind: history
+    language: javascript
+    label: 最初的移动：前面加一格，后面去一格
+    path: stages/02-moving.html
+    content: |2+
+      function tick() {
+        if (!running) return;
+        const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+        snake.unshift(head);
+        snake.pop();
+        draw();
+      }
+  - id: first-start
+    kind: history
+    language: javascript
+    label: 最初的启动：点击后开始向右走
+    path: stages/02-moving.html
+    content: |2+
+      document.querySelector("#start").addEventListener("click", () => {
+        running = true;
+        document.querySelector("#status").textContent = "蛇现在只会向右移动。";
+      });
+      setInterval(tick, 140);
+      draw();

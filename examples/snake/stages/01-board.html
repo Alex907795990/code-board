@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>贪吃蛇</title>
+  <style>
+    body { width: 480px; margin: 32px auto; background: #272822; color: #f8f8f2; font: 15px/1.6 system-ui; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    h1 { margin: 0; font-size: 24px; }
+    button { padding: 7px 14px; border: 1px solid #75715e; background: #3e3d32; color: inherit; cursor: pointer; }
+    button:hover { background: #49483e; }
+    button:focus-visible, canvas:focus-visible { outline: 2px solid #a6e22e; outline-offset: 3px; }
+    canvas { display: block; border: 1px solid #49483e; }
+    p { margin: 12px 0; }
+    #status { color: #e6db74; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>贪吃蛇</h1>
+    <span>得分：<strong id="score">0</strong></span>
+    <button id="start" type="button">开始游戏</button>
+  </header>
+  <canvas id="board" width="480" height="480" tabindex="0" aria-label="贪吃蛇棋盘，用方向键转向"></canvas>
+  <p id="status" role="status">点击开始游戏。</p>
+  <p>方向键转向。吃到食物会变长；撞墙或撞到身体，游戏结束。</p>
+  <script>
+const canvas = document.querySelector("#board");
+const ctx = canvas.getContext("2d");
+const size = 20;
+const cell = canvas.width / size;
+let snake = [{ x: 8, y: 10 }, { x: 7, y: 10 }, { x: 6, y: 10 }];
+
+function paintCell(part) {
+  ctx.fillRect(part.x * cell + 1, part.y * cell + 1, cell - 2, cell - 2);
+}
+
+function draw() {
+  ctx.fillStyle = "#272822";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  snake.forEach((part, index) => {
+    ctx.fillStyle = index === 0 ? "#a6e22e" : "#749e20";
+    paintCell(part);
+  });
+}
+
+draw();
+  </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>代码讲解</title>
+  <style>{{STYLE}}</style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到讲解正文</a>
+  <aside class="sidebar" aria-label="目录">
+    <div class="outline-heading">目录</div>
+    <nav id="outline" aria-label="讲解步骤"></nav>
+  </aside>
+  <div class="page-shell">
+    <main id="main-content">
+      <header class="document-header" id="top">
+        <span class="draft-badge" id="draft-badge" hidden>草稿</span>
+        <h1 id="tutorial-title"></h1>
+        <p class="document-subtitle" id="tutorial-subtitle"></p>
+        <div class="document-intro prose" id="tutorial-intro"></div>
+      </header>
+      <div id="steps"></div>
+    </main>
+  </div>
+  <dialog id="source-dialog" class="source-dialog" aria-labelledby="source-dialog-title">
+    <div class="source-dialog-header">
+      <h2 id="source-dialog-title"></h2>
+      <button class="icon-button" id="close-source" aria-label="关闭源代码"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+    </div>
+    <p class="source-dialog-hint">点击带箭头的代码行，跳转到对应讲解。</p>
+    <div id="source-dialog-code" class="source-dialog-code"></div>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script id="code-board-data" type="application/json">{{MODEL}}</script>
+  <script>{{SCRIPT}}</script>
+</body>
+</html>

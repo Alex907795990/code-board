@@ -1,0 +1,4 @@
+interface:
+  display_name: "code-board"
+  short_description: "Build progressive code tutorials with checked line coverage"
+  default_prompt: "Use $code-board to turn this code or change set into a progressive HTML tutorial with complete checked coverage."
