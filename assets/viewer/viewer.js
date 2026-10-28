@@ -41,8 +41,13 @@
     try { history.replaceState(null, '', `#${stepDomId(id)}`); } catch (_) {}
   }
 
-  function lineNode(line, inspector = false) {
-    const row = el('div', `code-line ${line.focus ? 'focus' : inspector ? '' : 'context'}${line.operation === 'delete' ? ' deletion' : ''}`);
+  function lineClasses(line, kind, inspector = false) {
+    const existing = line.focus && line.operation === 'context' && kind !== 'history';
+    return `${line.focus ? 'focus' : inspector ? '' : 'context'}${line.operation === 'delete' ? ' deletion' : ''}${existing ? ' existing' : ''}`;
+  }
+
+  function lineNode(line, inspector = false, kind = '') {
+    const row = el('div', `code-line ${lineClasses(line, kind, inspector)}`);
     row.dataset.line = String(line.number);
     const marker = el('span', 'line-operation', line.operation === 'add' ? '+' : line.operation === 'delete' ? '−' : '');
     marker.setAttribute('aria-hidden','true');
@@ -67,13 +72,13 @@
   }
 
   function appendAnnotatedLine(root, line, card) {
-    const row = lineNode(line);
+    const row = lineNode(line, false, card.model.kind);
     const notes = (card.model.notes || []).filter(note => note.lines[0] === line.number);
     const [prefix, suffix] = commentSyntax(card.model.language);
     let indent = 0;
     for (const char of (line.text.match(/^[\t ]*/) || [''])[0]) indent += char === '\t' ? 4 - indent % 4 : 1;
     notes.forEach(note => {
-      const commentRow = el('div', `code-comment-row ${line.focus ? 'focus' : 'context'}${line.operation === 'delete' ? ' deletion' : ''}`);
+      const commentRow = el('div', `code-comment-row ${lineClasses(line, card.model.kind)}`);
       commentRow.style.setProperty('--comment-indent', `${indent}ch`);
       const comment = el('div', 'code-comment');
       comment.setAttribute('role', 'note');
@@ -184,9 +189,20 @@
     copy.setAttribute('aria-label','复制当前展开的代码');copy.title='复制当前展开的代码（不含删除行和临时注释）';
     copy.addEventListener('click',()=>copyCard(card,copy));tools.append(copy);toolbar.append(sourceButton,tools);card.node.append(toolbar);
     const legend=el('div','code-legend');
-    const focusLegend=el('span','legend-item');focusLegend.append(el('span','legend-dot'),el('span','',model.kind==='history'?'本步中间实现':'本步讲解'));legend.append(focusLegend);
-    if(model.lines.some(line=>line.operation==='delete'&&line.focus)){const deleted=el('span','legend-item');deleted.append(el('span','legend-dot delete'),el('span','','删除'));legend.append(deleted);}
-    const contextLegend=el('span','legend-item');contextLegend.append(el('span','legend-context'),el('span','','上下文'));legend.append(contextLegend);card.node.append(legend);
+    const focused = model.lines.filter(line => line.focus);
+    const addLegend = (className, label) => {
+      const item = el('span', 'legend-item');
+      item.append(el('span', className), el('span', '', label));
+      legend.append(item);
+    };
+    if (focused.some(line => line.operation === 'add')) addLegend('legend-dot', '新增');
+    if (focused.some(line => line.operation === 'code')) addLegend('legend-dot', '本步讲解');
+    if (focused.some(line => line.operation === 'context')) {
+      addLegend(model.kind === 'history' ? 'legend-dot' : 'legend-dot existing', model.kind === 'history' ? '本步中间实现' : '已有代码');
+    }
+    if (focused.some(line => line.operation === 'delete')) addLegend('legend-dot delete', '删除');
+    if (model.lines.some(line => !line.focus)) addLegend('legend-context', '上下文');
+    if (legend.childElementCount) card.node.append(legend);
     const scroll=el('div','code-scroll');scroll.setAttribute('tabindex','0');scroll.setAttribute('role','region');scroll.setAttribute('aria-label',`${model.label || model.source} 代码片段，可横向滚动`);
     card.scroll=scroll;
     card.linesRoot=el('div','code-lines');scroll.append(card.linesRoot);card.node.append(scroll);renderLines(card);
@@ -229,7 +245,7 @@
     $('#source-dialog-title').textContent=source.label||source.id;
     const root=$('#source-dialog-code');root.replaceChildren();
     source.lines.forEach(line=>{
-      const row=lineNode({...line,focus:false},true);
+      const row=lineNode({...line,focus:false},true,source.kind);
       if(line.first_step){row.classList.add('jumpable');row.setAttribute('role','button');row.setAttribute('tabindex','0');row.setAttribute('aria-label',`第 ${line.number} 行，跳转到首次讲解`);$('.line-operation',row).textContent='↗';
         const jump=()=>{dialog.close();jumpToStep(line.first_step);};row.addEventListener('click',jump);row.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();jump();}});
       }root.append(row);

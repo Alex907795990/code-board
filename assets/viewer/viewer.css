@@ -15,6 +15,7 @@
   --paper:#1b1b1d; --surface:#202023; --sidebar:#151517; --ink:#f8f8f2; --muted:#b4b4b8; --subtle:#919196;
   --line:#353539; --soft:#2b2b2e; --selection:#414146; --accent:#a6e22e; --accent-soft:#28282c; --accent-line:#4b4b50;
   --copper:#fd971f; --copper-soft:#433724; --delete:#f92672; --delete-soft:#332426;
+  --existing:#e6d38a; --existing-soft:#302d23;
   --code-bg:#18181a; --code-focus-bg:#242e26; --code-muted:#919196; --comment-ink:#b6b29e; --shadow:none; --rail:240px;
   --sans:"Microsoft YaHei","微软雅黑","Segoe UI",sans-serif;
   --mono:"Fira Code","Microsoft YaHei","微软雅黑",monospace;
@@ -99,6 +100,7 @@ h1 { margin:0; font-size:28px; font-weight:600; line-height:1.5; }
 .legend-item{display:flex;align-items:center;gap:5px}
 .legend-dot{width:6px;height:6px;background:var(--accent);border-radius:2px}
 .legend-dot.delete{background:var(--delete)}
+.legend-dot.existing{background:var(--existing)}
 .legend-context{width:9px;height:1px;background:var(--code-muted)}
 .code-scroll{overflow:auto;background:var(--code-bg);scrollbar-width:thin;scrollbar-color:var(--line) transparent;padding:13px 0 14px;overscroll-behavior-x:contain}
 .code-lines{width:100%}
@@ -109,6 +111,8 @@ h1 { margin:0; font-size:28px; font-weight:600; line-height:1.5; }
 .line-code>code{font:inherit;white-space:pre}
 .code-line.focus,.code-comment-row.focus{background:var(--code-focus-bg);border-left-color:var(--accent)}
 .code-line.focus .line-operation,.code-line.focus .line-number{color:var(--accent)}
+.code-line.focus.existing,.code-comment-row.focus.existing{background:var(--existing-soft);border-left-color:var(--existing)}
+.code-line.focus.existing .line-operation,.code-line.focus.existing .line-number{color:var(--existing)}
 .code-line.focus.deletion,.code-comment-row.focus.deletion{background:var(--delete-soft);border-left-color:var(--delete)}
 .code-line.focus.deletion .line-operation,.code-line.focus.deletion .line-number{color:var(--delete)}
 .code-line.context .line-code{color:color-mix(in srgb,var(--ink) 70%,var(--muted))}
