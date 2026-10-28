@@ -1,8 +1,8 @@
-# code-board author format · version 1
+# code-board 编写格式 · 版本 1
 
-Two UTF-8 YAML files are authored: `scope.yaml` and `walkthrough.yaml`. JSON is also accepted because it is a YAML subset. Duplicate keys, aliases, unknown fields and malformed ranges are rejected. Use spaces for YAML indentation. YAML literal blocks (`|`) preserve code indentation and line breaks.
+输入由两个 UTF-8 编码的 YAML 文件组成：`scope.yaml` 和 `walkthrough.yaml`。由于 JSON 是 YAML 的子集，也可以使用 JSON 编写。工具会拒绝重复的键、别名、未知字段，以及格式错误的行范围。使用 YAML 时，应当用空格缩进；需要保留代码原有的缩进和换行时，则使用字面量块（`|`）。
 
-## Scope
+## 讲解范围
 
 ```yaml
 version: 1
@@ -10,7 +10,7 @@ sources:
   - id: read-user
     kind: diff
     language: javascript
-    label: 用户读取 · user.js
+    label: 用户查询 · user.js
     path: src/user.js
     content: |2
        function readUser(id) {
@@ -21,117 +21,148 @@ sources:
        }
 ```
 
-The diff above has **six source rows**. The leading operation character occupies a real column inside the literal block. The code's indentation follows it. Source references refer to these rows, not the displayed original-file coordinates.
+上面的 diff 一共包含**六行源文本**。每行开头的操作字符在字面量块中实际占据一列，后面才是代码本身的缩进。因此，编写源代码引用时，要使用这六行在输入中的行号，而不要使用页面上显示的原文件行号。
 
-Top-level fields: `version` (required, integer 1), `sources` (required, nonempty list).
+顶层需要填写两个字段：`version` 的值必须是整数 1，`sources` 则必须是非空列表。
 
-Source fields:
+每个代码源可以使用以下字段：
 
-| Field | Meaning |
+| 字段 | 含义 |
 | --- | --- |
-| `id` | Required unique ID; start with an ASCII letter, then letters, digits, `_`, `-`. |
-| `kind` | Required: `code`, `diff`, `context`, or `history`. |
-| `content` | Required literal source text. |
-| `language` | Syntax-highlighting language; defaults to `text`. Unknown names render as plain text. |
-| `label` | Reader-facing source caption; defaults to `path`, then ID. |
-| `path` | Optional display metadata. Never read from disk by the tool. |
+| `id` | 必填的唯一 ID。以 ASCII 字母开头，后续字符可以是字母、数字、`_` 或 `-`。 |
+| `kind` | 必填，取值为 `code`、`diff`、`context` 或 `history`。 |
+| `content` | 必填，用于原样保存源文本。 |
+| `language` | 指定语法高亮语言，默认为 `text`；如果语言名无法识别，则按纯文本渲染。 |
+| `label` | 向读者显示的代码源标题。如果没有填写，则使用 `path`；如果连 `path` 也没有，则使用 ID。 |
+| `path` | 可选，仅用于展示路径信息。工具不会根据这个路径从磁盘读取文件。 |
 
-Kinds and coverage:
+不同类型的代码源按以下规则计算覆盖度：
 
-- `code`: every physical row is required, including empty and structural rows.
-- `diff`: each line begins with exactly one operation prefix: `+` added, `-` deleted, or a space for context. Added and deleted lines are required. Modifications therefore require both sides. Do not include `diff --git`, `---`/`+++` file headers or `@@` hunk headers. Split disconnected hunks into separate source entries when useful. A blank added row is `+`; a blank context row is a single space.
-- `context`: supporting source text, never counted toward coverage.
-- `history`: an actual preserved intermediate implementation, allowed only in `authored` mode. Never counted toward final scope coverage.
+- `code`：每一个物理行都必须覆盖，包括空行和结构性代码行。
+- `diff`：每行开头必须有且仅有一个操作前缀，其中 `+` 表示新增，`-` 表示删除，空格表示上下文。由于新增行和删除行都必须覆盖，修改前后两侧的代码也就都需要讲解。输入中不要包含 `diff --git`、`---`/`+++` 文件头或 `@@` 差异块头。必要时，可以把不相邻的差异块拆成独立的代码源条目。如果新增的是空行，就只写一个 `+`；如果是上下文中的空行，则只写一个空格。
+- `context`：用于辅助理解的源文本，不计入覆盖度。
+- `history`：实际保存的中间实现，只能在 `authored` 模式下使用，也不计入最终讲解范围的覆盖度。
 
-A terminating newline ends the final row; it does not create another row. Additional blank lines do count. The entire scope must contain at least one required row. There is no `ignore`, exclusion, manual coverage field, repository resolver or patch application.
+计算行数时，结尾的一个换行符只用于结束最后一行，不会额外增加一行；如果后面还有空行，这些空行则会计数。整个讲解范围至少要包含一行必须覆盖的内容。工具不提供 `ignore`、排除项或手动指定覆盖度的字段，也不提供仓库解析器和补丁应用功能。
 
-### Preserve original indentation
+### 保留原始缩进
 
-YAML normally infers block indentation from the first nonempty row and removes that common indentation. Use an explicit `|2` indicator when a diff starts with a space-prefixed context row, or when copied code already has outer indentation. This makes the YAML indentation exactly two spaces deeper than the `content` key; any additional spaces are source characters. The diff example above uses this form intentionally. For snippets originally nested inside another function, preserve their outer spaces beyond those two YAML indentation spaces. Inspect the prepared index and compare with the original source before writing the explanation.
+默认情况下，YAML 会根据第一个非空行推断整个字面量块的缩进，再去掉这部分公共缩进。如果 diff 的第一行是带空格前缀的上下文行，或者复制的代码本身就带有外层缩进，这种推断可能会把源代码中的空格一并去掉。因此，遇到这些情况时，要显式使用 `|2` 标记，将 YAML 的缩进固定为比 `content` 键深两个空格；在此之外的空格就会作为源代码字符保留下来。上面的 diff 示例特意采用了这种写法。对于原本嵌套在另一个函数内的片段，也要在这两个 YAML 缩进空格之后，继续保留代码自身的外层缩进。编写讲解前，应当检查生成的索引，并与原始代码比对。
 
-When splitting a complete file into source chunks, keep each physical line exactly once. Use `|2+` for chunks ending in blank lines so YAML preserves those rows; the Snake example uses this form. Splitting into readable units must not silently remove blank lines from the selected scope.
+如果需要把完整文件拆成多个代码源片段，每一个物理行都必须保留，而且只能出现一次。对于末尾带有空行的片段，应当使用 `|2+`，让 YAML 把这些空行也保留下来；贪吃蛇示例使用的就是这种形式。拆分可以方便阅读，但不能因此悄悄删掉选定范围内的空行。
 
-## Prepare
+## 准备索引
 
 ```bash
 python "<skill>/scripts/code-board.py" prepare scope.yaml --out walkthrough.yaml
 python "<skill>/scripts/code-board.py" prepare scope.yaml --json
 ```
 
-`prepare` outputs source IDs, row numbers, required markers, code and `scope_digest`. `--out` creates a skeleton without overwriting an existing file. It defaults to reading mode and zero steps, which is intentionally incomplete. `--json` provides a machine-readable index. The digest binds all source identities, contents and metadata to the walkthrough. Source edits require reindexing and reviewing the old references before updating the digest. Do not let the agent silently shorten the selected scope to pass validation.
+运行 `prepare` 后，可以得到代码源 ID、行号、必须覆盖的标记、代码，以及 `scope_digest`。如果指定 `--out`，工具还会创建一份讲解骨架，但不会覆盖已有文件。骨架默认使用阅读模式，并且没有任何步骤；这个未完成的状态是有意保留的，需要由作者继续补充。如果需要机器可读的索引，则使用 `--json`。
 
-## Walkthrough
+摘要用于将所有代码源的标识、内容和元数据与讲解文件绑定。因此，源代码发生修改后，应当先重新建立索引并审阅旧引用，确认之后再更新摘要。不要让 agent 为了通过校验而悄悄缩小选定的范围。
+
+## 讲解文件
 
 ```yaml
 version: 1
 mode: reading
-scope_digest: COPY_THE_DIGEST_FROM_PREPARE
-title: 找不到用户时，应该发生什么
-subtitle: 从正常读取，到明确的失败路径。
+scope_digest: 从 prepare 的输出中复制 scope_digest
+title: 处理用户记录不存在的情况
 intro: |
-  先理解读取成功时的行为，再看缺失数据如何改变返回路径。
+  调用方使用 `readUser(id)` 按 ID 查询用户记录，但传入的 ID 不一定存在于 `users` 中。
+  例如，如果没有用户 42 的记录，读取 `users[42]` 就会得到 `undefined`。
+  此时，如果调用方继续访问这个值的属性，就会引发异常。
+
+  为了让调用方能够处理用户不存在的情况，函数需要说明查询失败的原因。
 language: zh-CN
 steps:
   - id: missing-user
-    title: 将缺失数据变成明确的错误
-    summary: 调用方需要知道这次读取没有成功。
+    title: 查询失败时抛出错误
     content:
       - text: |
-          旧实现直接返回查询结果。这里先保存结果，再检查用户是否存在。
-          **这改变了失败时的行为**：调用方会收到错误。
+          原实现会直接返回查询结果。为了在返回之前判断记录是否存在，修改后的函数先把结果存入 `user`，
+          然后检查是否找到了记录。如果没有找到，就抛出说明失败原因的错误；
+          如果找到了，则和以前一样返回同一个用户对象。
       - code:
           source: read-user
           focus: ["2-5"]
           show: ["1-6"]
-          caption: 旧的直接返回被替换为检查后返回。
           notes:
+            - lines: "1"
+              text: 调用方传入用户 ID，函数负责从 users 中找到对应记录。
+            - lines: "2"
+              text: 原来直接把查询结果交给调用方，找不到记录时也会返回 undefined。
+            - lines: "3"
+              text: 把这次查询的结果保存在 user 中，接下来的检查与返回都使用它。
             - lines: "4"
-              text: 这里的错误会交给调用方处理。
-      - callout:
-          tone: question
-          title: 调用方需要作出什么调整？
-          text: 它需要处理这条错误路径，才能向用户提供清晰反馈。
+              text: 如果没有对应的用户记录，就抛出错误并结束这次调用，不再执行下方的 return。
+            - lines: "5"
+              text: 能够走到这里，说明已经找到用户记录，将这个用户对象返回给调用方。
+      - text: |
+          调用方以前可能通过检查返回值是否为 `undefined` 来处理数据缺失。
+          现在函数改为抛出异常，原先的处理方式也需要相应调整，在合适的位置捕获异常；
+          例如，捕获之后可以向用户显示一条记录不存在的提示。
+          至于查询成功的情况，返回值仍然和以前相同。
 ```
 
-Required top-level fields: `version`, `mode`, `scope_digest`, `title`, `steps`.
-Optional fields: `subtitle`, `intro`, `language`.
+顶层必填字段包括 `version`、`mode`、`scope_digest`、`title` 和 `steps`；`subtitle`、`intro`、`language` 则为可选字段。
 
-`mode` is `reading` or `authored`. Reading mode rejects scopes containing history sources. Authored mode permits real historical material, but the tool cannot verify its historical truth; the author must know and preserve the actual versions.
+其中，`mode` 可以取 `reading` 或 `authored`。选择阅读模式时，讲解范围中不能包含历史代码源；选择编写模式时，则可以使用真实的历史材料。不过，工具无法验证这些材料是否真实，因此作者必须了解并保存实际版本。
 
-Each step has a unique `id`, nonempty `title`, optional `summary`, and a nonempty `content` list. A step needs at least one nonempty text or callout node. Content order is preserved, allowing prose/code/prose/code. There is no fixed number of steps or line-per-step limit.
+每个步骤都需要唯一的 `id`、非空的 `title`，以及非空的 `content` 列表，也可以根据需要填写 `summary`。由于步骤本身需要承担讲解，它至少要包含一个非空的正文或旁注节点。工具会保留内容的编排顺序，因此可以按“正文／代码／正文／代码”的方式交替安排。步骤数量和每步代码行数都没有固定限制。
 
-### Text and callouts
+### 各字段在文章中的作用
 
-`text` is a Markdown string. Supported subset: paragraphs, inline `code`, **bold**, *emphasis*, safe links, simple unordered/ordered lists, blockquotes, and `###` headings. Separate blocks with a blank line; keep list items on individual lines. Raw HTML is escaped. Fenced code is rejected in text: put code in a declared source and reference it. Nested Markdown, tables, embedded images and executable HTML are not part of version 1.
+编写这些字段时，应当遵循 `SKILL.md` 中的写作要求，并根据文章的实际需要安排内容，不必为了使用某个字段而勉强填充文字。
 
-`callout` has `text` (required), optional `title`, and optional `tone`: `note`, `question`, or `tip`. It is reader-facing explanatory content, not a validation result.
+- 顶层 `title`：平实地指出主题或具体问题，避免承诺学习成果，也不要堆叠尚未交代背景的技术术语。
+- `subtitle`：可选。如果需要补充必要背景，或限定所讨论问题的范围，可以使用这个字段；不要用它重复标题、预告阅读路线或宣传文章的价值。
+- `intro`：用于文章的开篇，应当自然引入话题，说明问题和要做的工作，并交代必要背景。根据需要，可以放入简单的例子，也可以写成多个相互衔接的段落，不必压缩成一句摘要。不要用文件清单、一串术语、阅读器操作说明或文章结构介绍来代替这些内容。如果已经把开篇写在第一步的 `text` 中，就可以省略 `intro`，但在进入具体实现之前，仍然要让读者具备这些背景知识。
+- 步骤 `title`：说明本节实际讨论的问题或主题，措辞应当建立在读者目前已经了解的背景之上。章节可以顺着讨论展开，不必按照文件或函数顺序排列。
+- `summary`：可选。如果有必要补充某项限定说明，而周围正文尚未交代，可以使用这个字段。不要重复标题、提前宣告结论，或预告接下来要讲什么。
+- `text`：用于展开讨论、举例、解释定义和原因，以及衔接前后内容。相邻代码片段之间的正文应当延续同一条讨论脉络，避免写成对各张代码卡片的孤立描述。
+- `caption`：用于补充与对应代码紧密相关的简短说明。正文或标题已经交代清楚的内容，不必再写成图注，也不要加入重要性宣告或口号。
+- `notes`：用于直接在代码片段中展开临时讲解。默认按照 `SKILL.md` 中“用临时注释讲解整个代码片段”的目标和五个要点编写，让读者能顺着注释理解整个片段。正文已经介绍过的概念，仍然可以在这里结合对应语句解释其具体作用，不要因为正文提过就省略。
 
-### Code views
+### 正文与旁注
 
-| Field | Meaning |
+`text` 接受 Markdown 字符串，但只支持其中的一个子集，包括段落、行内 `code`、**加粗**、*强调*、安全链接、简单的无序／有序列表、引用块，以及 `###` 标题。编写时，块之间用空行分隔，列表项各占一行。原始 HTML 会被转义；正文中的围栏代码块则会被拒绝，因此需要先把代码放入已声明的代码源，再通过引用展示。版本 1 尚不支持嵌套 Markdown、表格、嵌入图片或可执行 HTML。
+
+`callout` 用于面向读者的解释性旁注，不能用来展示校验结果。它必须包含 `text`，还可以填写 `title` 和 `tone`；其中 `tone` 的取值为 `note`、`question` 或 `tip`。
+
+当某个具体条件、限制或补充解释与当前讨论有关时，可以使用 `callout`，但主要讲解仍然应当由正文承担。不要用“重点”“记住这一点”等宣告替代讨论，也不要默认给每个章节都加上旁注。
+
+### 代码视图
+
+| 字段 | 含义 |
 | --- | --- |
-| `source` | Required source ID. |
-| `focus` | Rows actively explained in this view; these receive emphasis and may earn coverage. |
-| `show` | Optional rows initially displayed. Must contain every focus row. Gaps become expandable omissions. |
-| `context` | Neighboring row radius when `show` is omitted; default 2. |
-| `caption` | Optional short caption below the code view. |
-| `notes` | Optional temporary code comments. Each has `lines` and Markdown `text`. Write only the explanation; the viewer supplies comment delimiters. |
+| `source` | 必填，指定要引用的代码源 ID。 |
+| `focus` | 指定此视图中正在解释的行。这些行会被突出显示，并在符合覆盖度规则时计入已覆盖范围。 |
+| `show` | 可选，指定初始显示哪些行，必须包含全部 `focus` 行。没有展示的间隔会变成可展开的省略区。 |
+| `context` | 省略 `show` 时，指定在重点行前后各保留多少行上下文，默认为 2。 |
+| `caption` | 可选，用于代码视图下方的简短说明。 |
+| `notes` | 格式上可选，编写讲解时默认使用它充分解释代码片段。每条注释包含 `lines` 和 Markdown 格式的 `text`；只填写解释，阅读器会补上注释分隔符。 |
 
-A row selector accepts an integer, a string such as `"3"`, an inclusive range `"3-7"`, `"all"`, or a list combining them. For example, `focus: ["1-2", "5", "8-11"]`. Ranges must be within that source's row count. Duplicate selections are merged. Focus can include context rows for emphasis, but context still does not earn coverage.
+行选择器可以接受整数、`"3"` 这样的字符串、包含两端的范围 `"3-7"`、`"all"`，也可以接受由这些形式组合而成的列表，例如 `focus: ["1-2", "5", "8-11"]`。无论采用哪种形式，范围都不能超出该代码源的总行数；如果重复选择同一行，工具会自动合并。为了突出上下文中的某些代码，也可以把它们放进 focus，但这些上下文行仍然不计入覆盖度。
 
-If `show` is omitted, the viewer initially shows focus rows and their configured neighbors. A history/context source with no focus defaults to showing the whole snippet. A code/diff source needs `focus` or `show`; merely showing a required row does not count as explaining it. Notes require at least one anchor row, and all their anchors must be initially visible.
+如果省略 `show`，阅读器会根据配置，初始显示 focus 行及其相邻行。对于 history/context 类型的代码源，如果没有指定 focus，就默认显示整个片段；对于 code/diff 类型的代码源，则必须提供 `focus` 或 `show`。不过，仅仅显示某个必须覆盖的行，并不表示已经解释了它。添加注释时，还需要指定至少一个锚定行，并确保所有锚定行在初始状态下都可见。
 
-Notes appear directly inside the snippet, at their first anchor, with the same indentation as that code. A single short note sits at the end of the line when it fits; otherwise it appears above the line and wraps within the code viewport. Notes spanning several rows, or multiple notes on one row, stay above the first anchor in authored order. There are no numbered markers or separate footnotes. Keep notes concise and use the surrounding prose for longer reasoning. Comment delimiters follow the source language (`<!-- -->` for HTML/XML, `/* */` for CSS, `#` or `--` for common scripting languages, `//` otherwise). These are display-only comments, so they do not consume source line numbers, change coverage, enter the source inspector, or enter copied code. Leave the original source untouched.
+注释会直接显示在代码片段内部，放在第一个锚定位置，缩进也与对应代码一致。如果只有一条短注释，而且行末空间足够，就把它放在行末；否则放在该行上方，并在代码视口内折行。对于跨越多行的注释，或同一行上的多条注释，则按照编写顺序，放在第一个锚定行上方。这里不使用编号标记或独立脚注。
 
-Readers can expand omitted context. This does not change coverage. Code is read from the source text, never supplied again by a view. The reader's copy control excludes removed lines, diff prefixes, row numbers, annotations and omission labels. A fragment with omitted lines remains a fragment when copied.
+单条注释可以简洁，但整组注释应当解释片段中的各个部分。内容较多时，按语义拆成多条，分别锚定在对应语句附近，让读者能够一边读代码，一边理解数据和执行流程如何变化。跨片段的讨论与较长的推理可以放在正文中，但片段内仍应保留理解这些语句所需的局部说明。
 
-### Coverage
+注释分隔符会根据代码源语言自动选择：HTML/XML 使用 `<!-- -->`，CSS 使用 `/* */`，常见脚本语言使用 `#` 或 `--`，其他情况使用 `//`。由于这些注释仅用于展示，它们不会占用源代码行号，不会改变覆盖度，也不会出现在源代码查看器或复制出的代码中。原始代码必须保持不变。
 
-Coverage is the union of required rows selected in valid focus views, attached to steps containing explanatory text and actually included in the initial display. Duplicate views do not inflate it. The first explanatory step is recorded for source-to-step navigation. Blank rows and braces can be explained as part of their surrounding block; no individual prose per row is required.
+读者可以展开被省略的上下文，但展开操作不会改变覆盖度。视图中的代码始终从源文本读取，不能在视图中另行提供一份代码。复制代码时，阅读器会排除已删除的行、diff 前缀、行号、注释和省略标记；如果片段中省略了代码行，复制结果也仍然只是片段。
 
-The renderer and validator consume the same compiled code-view representation. A hidden focus row, unknown source, dangling note or empty explanation is an error. References cannot claim coverage for text that the reader cannot see. Prose correctness and the completeness of the author's selected scope relative to an external request remain author responsibilities.
+### 覆盖度
 
-## Check and export
+只有同时满足以下条件的行，才会计入已覆盖范围：它属于必须覆盖的行，被有效的 focus 视图选中，所在步骤包含解释性文字，并且确实出现在初始展示中。工具对这些行取并集，因此重复展示同一行不会增加覆盖度。工具还会记录每一行首次在哪一步得到解释，用于从源代码跳转到对应步骤。至于空行和花括号，可以随所在代码块一起解释，不必逐行各写一段正文。
+
+渲染器和校验器使用的是同一份编译后的代码视图数据。校验时，如果发现隐藏的 focus 行、未知代码源、没有有效锚点的注释，或空解释，工具都会报错。不能仅靠填写引用，就把读者看不到的文本算作已覆盖。不过，这些检查只负责结构和引用；正文是否正确、作者选定的范围是否完整回应了外部请求，仍然需要由作者判断。
+
+## 检查与导出
 
 ```bash
 python "<skill>/scripts/code-board.py" check scope.yaml walkthrough.yaml --json --report report.json
@@ -139,8 +170,13 @@ python "<skill>/scripts/code-board.py" build scope.yaml walkthrough.yaml -o tuto
 python "<skill>/scripts/code-board.py" build scope.yaml walkthrough.yaml --draft -o preview.html
 ```
 
-Exit codes: `0` successful check/build, `1` incomplete coverage, `2` invalid input or an execution error. Explicit draft build returns `0` for valid-but-incomplete input and labels the page as a draft; it still rejects invalid references. Never use a draft build as the completion check.
+命令成功完成检查或构建时，退出码为 `0`；覆盖不完整时为 `1`；输入无效或执行出错时为 `2`。如果显式使用草稿构建，那么对于有效但覆盖不完整的输入，命令也会返回 `0`，同时把页面标记为草稿；无效引用则仍然会被拒绝。因此，不能用草稿构建来判断工作是否已经完成。
 
-The JSON report contains `valid`, `complete`, `required`, `covered`, per-source counts, and `uncovered` entries with neighboring context. Reports stay author-side. An unsuccessful formal build does not overwrite an existing output. An earlier output, if present, remains an older artifact; the failed command does not certify it.
+JSON 报告包含 `valid`、`complete`、`required`、`covered`、各代码源的计数，以及带有相邻上下文的 `uncovered` 条目。这些报告只留在编写端。正式构建失败时，不会覆盖已有输出；如果之前已经生成过文件，它仍然只是旧产物，不能因为文件还在，就认为本次检查已经通过。
 
-The exported HTML embeds viewer CSS, JavaScript, syntax coloring, source data and tutorial content. It uses system fonts and requires no network requests. The fixed dark desktop layout uses neutral charcoal backgrounds with Monokai Classic syntax colors and contains a chapter outline, a compact document heading, and the explanation itself. Source strings and annotation markup are escaped; they are not executed.
+导出的 HTML 会内嵌阅读器所需的 CSS、JavaScript、语法着色、代码源数据和教程内容，因此无需服务器即可离线打开。
+
+- 正文和标题优先使用本机的微软雅黑。代码片段、行内代码和临时注释中的中文也明确指定微软雅黑；如果设备没有安装，则使用系统后备字体。
+- 代码中的英文、数字和符号使用随包提供的 Fira Code 6.2。构建时，脚本会把 `assets/fonts/FiraCode-VF.woff2` 以及 `assets/fonts/OFL-FiraCode.txt` 中的许可信息内嵌到 HTML，因此不依赖本机安装 Fira Code，也不需要联网下载字体。许可信息保存在页面源码中，不显示在文章里。
+- 页面采用固定的深色桌面布局，以中性炭灰色为背景，搭配 Monokai Classic 语法配色，保留章节目录、紧凑的文档标题和讲解本身。
+- 源代码字符串与注释标记都会经过转义，只用于展示，不会执行。

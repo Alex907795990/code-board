@@ -1,14 +1,23 @@
 @charset "UTF-8";
+/* Fira Code 6.2: https://github.com/tonsky/FiraCode/releases/tag/6.2
+   The builder embeds the bundled font and its SIL Open Font License. */
+@font-face {
+  font-family:"Fira Code";
+  src:url("data:font/woff2;base64,{{CODE_FONT}}") format("woff2");
+  font-weight:300 700;
+  font-style:normal;
+  font-display:swap;
+}
 :root {
   color-scheme: dark;
   /* Neutral charcoal surfaces with Monokai Classic syntax colors.
      Reference: https://github.com/microsoft/vscode/blob/main/extensions/theme-monokai/themes/monokai-color-theme.json */
   --paper:#1b1b1d; --surface:#202023; --sidebar:#151517; --ink:#f8f8f2; --muted:#b4b4b8; --subtle:#919196;
   --line:#353539; --soft:#2b2b2e; --selection:#414146; --accent:#a6e22e; --accent-soft:#28282c; --accent-line:#4b4b50;
-  --copper:#fd971f; --copper-soft:#433724; --delete:#f92672; --delete-soft:#492733;
-  --code-bg:#18181a; --code-muted:#919196; --comment-ink:#b6b29e; --shadow:none; --rail:240px;
-  --sans:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-  --mono:"Cascadia Code","SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  --copper:#fd971f; --copper-soft:#433724; --delete:#f92672; --delete-soft:#332426;
+  --code-bg:#18181a; --code-focus-bg:#242e26; --code-muted:#919196; --comment-ink:#b6b29e; --shadow:none; --rail:240px;
+  --sans:"Microsoft YaHei","微软雅黑","Segoe UI",sans-serif;
+  --mono:"Fira Code","Microsoft YaHei","微软雅黑",monospace;
 }
 * { box-sizing:border-box; }
 html { scroll-behavior:smooth; }
@@ -98,7 +107,7 @@ h1 { margin:0; font-size:28px; font-weight:600; line-height:1.5; }
 .line-number{font:10px/27px var(--mono);text-align:right;padding-right:13px;color:var(--code-muted);user-select:none}
 .line-code{font:14px/27px var(--mono);font-variant-ligatures:none;white-space:pre;tab-size:4;color:var(--ink);display:flex;align-items:baseline;min-height:27px}
 .line-code>code{font:inherit;white-space:pre}
-.code-line.focus,.code-comment-row.focus{background:var(--accent-soft);border-left-color:var(--accent)}
+.code-line.focus,.code-comment-row.focus{background:var(--code-focus-bg);border-left-color:var(--accent)}
 .code-line.focus .line-operation,.code-line.focus .line-number{color:var(--accent)}
 .code-line.focus.deletion,.code-comment-row.focus.deletion{background:var(--delete-soft);border-left-color:var(--delete)}
 .code-line.focus.deletion .line-operation,.code-line.focus.deletion .line-number{color:var(--delete)}

@@ -1,74 +1,269 @@
 ---
 name: code-board
-description: Create a progressive, source-bound HTML tutorial explaining supplied code or an agent-curated change set, with mandatory coverage of every selected line. Use for guided code walkthroughs and explanations of completed implementation work.
+description: 根据用户提供的代码或由 agent 整理的改动范围，编写循序渐进的 HTML 讲解。讲解须通过引用与源代码对应，并强制覆盖所选范围内的每一行。适用于引导读者理解代码，以及解释已经完成的实现工作。
 ---
 
 # code-board
 
-Help the reader understand why each part of the code exists. Long AI implementation tasks can produce correct-looking code whose assumptions and architecture are hard for the user to assess. A progressive tutorial gives the reader a path from a familiar problem to the complete implementation.
+一次较长的实现工作完成后，读者往往很难仅凭最终代码理解其中的假设、边界处理和设计。因此，需要围绕选定的代码或改动，写成一篇连贯的技术文章：先交代代码要解决什么问题，再逐步解释它如何解决这些问题，以及相关选择会带来什么结果。读者在理解这些内容之后，才能判断实现是否符合自己的需求。
 
-Use [Catlike Coding](https://catlikecoding.com/unity/tutorials/) as the storytelling reference: introduce a concrete problem, show the relevant code in context, explain the consequence, then introduce the next problem. Let the reader understand and assess the design. Do not write a mechanical line-by-line paraphrase.
+这个skill的目的是参考 [Catlike Coding](https://catlikecoding.com/unity/tutorials/) 的方式，参考链接 https://catlikecoding.com/unity/tutorials/rendering/part-4/ ，通过选择讲解范围、构思讲解内容后，用脚本工具生成一份讲解文章。从读者能够理解的具体问题开始，随着讨论的展开逐步引入概念和代码。在解释清楚当前做法及其结果之后，再沿着尚未解决的问题继续讨论。代码片段应当穿插在相关讨论中，既保留理解它们所需的上下文，也突出当前正在讲解的部分。
 
-## Choose the explanation mode
+## 写作要求
 
-- **Reading (`mode: reading`)**: explain supplied final code through progressive attention. Reveal and discuss existing parts in a useful order. Do not invent earlier implementations, development history, or motivations that the evidence does not establish.
-- **Authored (`mode: authored`)**: when you implemented the code and actually know its intermediate versions, you may use those preserved versions to explain its evolution. Put such material in `history` sources. It never substitutes for coverage of the final selected code. If the history is unavailable, use the reading approach.
+以下按主题列出编写要求，便于逐项理解和使用。实际教程仍应写成连贯的技术文章，不必照搬本文件的标题和列表结构。
 
-Neither mode needs a Git commit, Perforce changelist, or complete project. You curate the scope from the user's requested code, scattered snippets, or changes. Scope selection is your responsibility; the tool verifies coverage of what you submit.
+### 开篇交代问题与背景
 
-## Use the bundled tool
+- 先说明要处理什么问题、要做什么工作，以及为什么需要处理它，让读者知道文章正在讨论什么。
+- 可以从一个简单的例子、实际使用场景，或对任务的平实描述入手。例子和背景应当帮助读者理解当前任务。
+- 在进入各个具体部分之前，先交代整体目的、可以观察到的行为，以及理解它们所需的背景。不要让读者为了理解第一步，就必须先了解某个尚未解释的已有引擎。
+- 不要用成品系统的组成、文件清单，或一串陌生的技术术语代替引入。读者还不知道这些部分与当前任务有什么关系，直接罗列并不能建立理解。
+- 不要用“将学会什么”的承诺或阅读路线的预告代替问题和背景。
 
-The skill is self-contained. Let `<skill>` be this folder's absolute path and `<work>` the user's output folder. Write task-specific inputs and outputs under `<work>`, not into this installed skill. Run scripts by absolute path; commands work from any current directory.
+### 根据读者已有的知识引入概念
 
-Requires Python 3.10 or later. If imports are unavailable, install the pinned dependencies into an appropriate environment:
+写每一段时，都要考虑：
+
+- 读者读到这里已经知道什么。
+- 当前讨论涉及哪些读者还不知道的内容。
+- 为了理解下一段，需要先补充哪些知识。
+
+据此安排概念的引入：
+
+- 如果要介绍一个复杂概念，就先找出它依赖的简单概念，并解释读者尚未理解的部分。不能因为作者熟悉实现，就假定读者已经理解其中的术语、组成部分及其关系。
+- 在给新概念命名或下定义之前，先通过讨论、例子和背景铺垫，说明它描述什么情况、要解决什么问题，以及有什么用途。
+- 等读者理解了这些具体内容，再引入名称、定义或更抽象的推理。定义应当把前面已经讨论清楚的内容表达得更准确。
+- 不要只罗列术语及其解释，也不要把理解当前段落所需的知识推迟到“后面再讲”。
+
+### 说明话题之间为什么相连
+
+段落应当围绕当前问题展开，让前面的讨论为后面的内容提供依据。转向另一个话题时，根据实际关系说明其中相关的内容：
+
+- 当前做法已经实现了什么。
+- 它还留下了什么尚未解决的问题。
+- 使用这个做法时，会遇到什么限制。
+- 为了继续完成任务，还需要补上哪一部分。
+
+如果有助于衔接，可以简要回顾前文已经建立的事实。不要仅靠“接下来介绍这个模块”或“现在进入下一步”这样的宣告连接两个章节。
+
+### 根据内容安排篇幅
+
+- 对读者已经熟悉的内容，可以简述。
+- 对比较陌生、抽象，或容易引起误解的内容，需要充分讨论，并用例子帮助理解。
+- 涉及不同方案的选择时，应当说明有哪些选择，以及各自会带来什么结果。
+- 根据具体话题安排结构，不要给每个章节套用同一套“问题／解决方案／总结”模板，也不必为每个概念勉强编造例子。
+- 补充的背景应当有助于理解当前话题，避免无关的故事和离题的展开。
+
+### 将代码放在相关讨论中
+
+- 当讨论需要查看具体实现时，再引入相应的代码，并说明它与当前问题的关系。
+- 结合代码解释实际行为、边界处理和设计，让片段前后的正文延续同一条讨论脉络。
+- 按问题之间的关系和理解所需的前置知识组织文章。不要按照文件、函数或代码行的清单逐项讲解，也不要只在连续的代码卡片旁各放一段孤立的说明。
+- 所选范围内的代码必须全部得到解释。用覆盖度检查发现尚未讲到的部分，再把它们放入合适的讨论位置。
+- 目录、步骤编号和代码高亮只能辅助阅读；正文自身仍须提供读者跟上文章所需的背景、讨论和衔接。
+
+### 用临时注释讲解整个代码片段
+
+默认通过 `notes` 为代码片段添加充分的临时讲解注释。目标是：**读者顺着片段中的临时注释阅读，就能用自然语言理解这段代码完整地做了什么。** 具体包括：
+
+- 变量保存什么信息，为什么在这里准备它。
+- 每组语句执行什么操作，数据会怎样变化。
+- 条件判断对应什么情况，各个分支会发生什么。
+- 循环如何推进，提前返回会阻止哪些后续操作。
+- 当前操作与前后代码如何配合。
+
+安排注释时：
+
+- 按照执行顺序或语义关系，把注释放在对应语句附近。
+- 一条注释可以解释一组紧密相关的语句，不必为每个花括号或空行单独写注释。
+- 单条注释可以保持简洁，但不要因此减少必要的讲解。内容较多时，应当分散到对应的语句旁。
+- 不要仅因为代码在开发者看来容易理解，就省略对读者有帮助的说明。
+- 正文负责引入问题、讨论例子和设计，临时注释则把这些讨论落实到具体语句上。即使正文已经介绍过某个概念，仍然可以在相关语句旁解释它在这里如何起作用。
+- 解释当前代码的含义，避免机械翻译语法。例如，`snake.unshift(head)` 可以解释为“把新头加入数组开头，原来的头就成为第二节身体”，而不只是“向数组头部插入元素”。
+
+### 使用平实、聚焦话题的语言
+
+措辞应当直接说明事实、行为和原因：
+
+- 使用平实、具体、准确的语言，避免宣传式的宣告和口号，也不要作出“读懂全部内容”“掌握整个系统”一类承诺。
+- 不要为了修辞效果制造戏剧性，或刻意构造对照、反转和金句。如果技术方案之间的差异确实会影响当前问题，可以直接比较差异及其结果。
+- 减少指挥读者思路或宣告重要性的句子，例如“先记住这一点”“真正重要的是”“你需要意识到”。
+- 如果某个条件需要特别注意，就把条件本身、原因及其后果说清楚。不要用强调语气、加粗文字，或“关键”“核心”之类的标签替代解释。
+
+内容应当围绕所讲解的对象展开：
+
+- 不要转而评论文章自身如何安排内容、如何教学、如何生成，或者有多清晰、完整和重要。
+- 对于“本文将带你……”“接下来我们会讲……”“你正在阅读的页面本身就是……的产物”等句子，如果没有增加关于话题的信息，就应当删去，并补上读者实际需要的背景或衔接。
+- 阅读器的操作说明、覆盖度报告，以及对作者工作流程的叙述，都不应进入文章的开头或正文。
+
+这些要求同样适用于标题、副标题、章节标题、摘要和代码注释：
+
+- 标题应当平实地说明主题或问题。
+- 可选字段只在确实能提供必要信息时使用，不要为了填满页面而增加预告或重复已有内容。
+
+### 概念引入示例
+
+例如，要介绍“游戏循环”，可以从贪吃蛇点击开始后应当怎样移动谈起。下面的行为和代码名称对应随附的贪吃蛇示例：
+
+> 游戏刚开始时，蛇身横着占据三个格子，蛇头朝右。即使玩家不按方向键，蛇也应该隔一小段时间向右移动一格，直到玩家转向，或游戏结束。
+>
+> 先看其中的一次移动。如果前方没有食物，也没有障碍，蛇头前面的格子就会成为新的蛇头，尾巴原来占据的格子则会空出来。程序需要先更新记录蛇身位置的数据，再根据这些位置重新绘制棋盘，玩家才能看到移动后的蛇。
+>
+> 这些操作只完成了一次移动。如果只在点击“开始游戏”时执行一次，蛇走一格之后就会停下来。要让它继续走，就需要在间隔一小段时间后，再执行一次移动和绘制，并不断重复这个过程。
+>
+> 可以把一次游戏推进的处理放进 `tick()` 函数。每次调用时，先检查游戏是否正在进行：如果尚未开始或已经结束，就直接返回；否则，才处理下一步移动，并更新画面。然后用 `setInterval(tick, 140)`，让浏览器大约每隔 140 毫秒调用它一次。这样，玩家点击开始后，后续调用就会让蛇持续移动；游戏结束后，虽然调用仍在继续，蛇却不会再向前走。
+>
+> 像这样，通过重复执行来持续推进游戏并更新画面的过程，称为游戏循环。在这个贪吃蛇实现中，游戏进行时，每次调用会处理蛇的下一步移动。
+
+这个例子的展开顺序是：
+
+1. 先描述玩家可以观察到的行为：点击开始后，即使不按键，蛇也会持续移动。
+2. 再说明一次移动具体做了什么：更新蛇身位置，然后重新绘制棋盘。
+3. 接着讨论为什么执行一次还不够，以及怎样重复执行、控制间隔，并在游戏结束后停止推进。
+4. 等读者理解了这个过程，再引入“游戏循环”这个名称。
+
+编写实际文章时，应当根据当前主题组织内容，并且只描述代码确实支持的行为。不要在每个话题中重复使用这个例子，或机械套用它的段落结构。
+
+## 选择讲解模式
+
+### 阅读模式（`mode: reading`）
+
+- 适用于解释用户提供的最终代码。
+- 按照有助于理解的顺序，逐步展示并讨论已有的各个部分。
+- 不要虚构早期实现、开发历史，或没有证据支持的动机。
+
+### 编写模式（`mode: authored`）
+
+- 如果代码由你实现，而且你确实了解其中间版本，可以用实际保存的版本解释代码的演进。
+- 把这些历史材料放在 `history` 类型的代码源中。
+- 历史材料用于帮助理解，不能替代对最终选定代码的覆盖。
+- 如果没有可用的历史版本，就采用阅读模式的讲解方式。
+
+### 两种模式共同遵守的范围要求
+
+- 不要求用户提供 Git commit、Perforce changelist 或完整项目。
+- 根据用户要求讲解的代码、分散片段或改动，自行整理讲解范围。
+- 由你负责确认范围是否完整、准确；工具只检查你提交的范围是否得到覆盖。
+
+## 使用随附工具
+
+### 运行环境与文件位置
+
+本技能已随附使用所需的工具。下文的路径约定为：
+
+- `<skill>`：本技能文件夹的绝对路径。
+- `<work>`：用户的输出文件夹，用于保存当前任务的输入和输出。不要把这些文件写入已安装的技能目录。
+- 运行脚本时使用绝对路径，这样就可以从任意当前目录执行命令。
+
+运行环境需要 Python 3.10 或更高版本。如果无法导入依赖，请在合适的环境中安装下面列出的固定版本依赖：
 
 ```bash
 python -m pip install -r "<skill>/requirements.txt"
 ```
 
-Read [references/format.md](references/format.md) before writing input files. The Chinese [Snake walkthrough](examples/snake/walkthrough.yaml), its [scope](examples/snake/scope.yaml), and [rendered tutorial](examples/snake/tutorial.html) explain a whole playable [single-file game](examples/snake/snake.html) from an empty page. Every line of its HTML, CSS and JavaScript is in scope. Genuine early implementations are preserved under `examples/snake/stages/`. Read examples selectively when they help; do not load the renderer implementation merely to use it.
+### 阅读格式说明与示例
 
-1. **Understand and collect.** Determine the user's intended scope and the reader's likely starting knowledge. Establish the overall purpose and observable behavior before introducing code; a reader should not need an unexplained existing engine to understand the first step. Write `scope.yaml`, copying the exact selected code once. `code` means every line is required; `diff` means added and deleted lines are required. Keep supporting context explicitly separate. Preserve meaningful empty lines and braces. For an actual change set include removals, not only its final version.
-2. **Get reliable references.** Run `prepare`. Read its line index; do not guess indices. It marks required lines with `*` and gives the scope digest.
+- 编写输入文件之前，先阅读 [references/format.md](references/format.md)。
+- 需要参考具体用法时，可以查看中文的[贪吃蛇讲解](examples/snake/walkthrough.yaml)、对应的[讲解范围](examples/snake/scope.yaml)和[生成的教程](examples/snake/tutorial.html)。
+- 这个示例从空页面开始，逐步讲解一个完整可玩的[单文件游戏](examples/snake/snake.html)。其中 HTML、CSS 和 JavaScript 的每一行都在范围内，真实的早期实现保存在 `examples/snake/stages/` 中。
+- 参考示例时，按需查看输入语法、源代码引用和渲染行为即可；正文写作仍应遵循上面的要求。
+- 不要仅为了使用渲染器就加载其实现代码。
 
-   ```bash
-   python "<skill>/scripts/code-board.py" prepare "<work>/scope.yaml" --out "<work>/walkthrough.yaml"
-   ```
+### 1. 理解任务并整理讲解范围
 
-3. **Compose the tutorial.** Fill the generated file. Order steps by problems and dependencies, not necessarily file order. Alternate prose and source-bound code nodes freely. Use `focus` for the code explained here, `show` or `context` for readable surroundings, and `notes` for temporary teaching annotations. Prefer a concrete scenario or visible behavior before a new abstraction. Explain relevant limits and tradeoffs where they matter. A single explanation may account for a coherent group of lines, including structural lines. Keep implementation verification outside the narrative; explain test code when it belongs to the user's selected scope, but do not add a testing-methodology lesson merely because you ran checks.
-4. **Check and complete.** Run `check`, use its missing-line list to extend or repair the explanation, and repeat until it succeeds.
+- 确定用户要求讲解哪些代码，以及读者可能具备哪些起始知识。
+- 编写 `scope.yaml`，把选定的原始代码准确复制一次。
+- 对完整代码，使用 `code` 类型；其中每一行都必须覆盖，包括空行和花括号。
+- 对实际改动，使用 `diff` 类型；新增行和删除行都必须覆盖，不能只提供最终版本。
+- 明确区分辅助上下文和必须覆盖的内容。整理时保留原始代码中的空行和花括号，不要为了方便讲解而省去它们。
 
-   ```bash
-   python "<skill>/scripts/code-board.py" check "<work>/scope.yaml" "<work>/walkthrough.yaml"
-   ```
+### 2. 获取可靠的代码引用
 
-   Do not reclassify required lines as context or shrink the scope merely to pass. A source edit invalidates the digest: run `prepare` again, review the affected references, and explicitly update the walkthrough. Do not blindly restamp it.
-5. **Build and inspect.** Export the reader. Open it in an available browser, verify representative code blocks and inline comment placement in the desktop layout, and exercise context expansion and copying. If browser inspection is unavailable, disclose that limit without claiming it was performed.
+运行 `prepare`：
 
-   ```bash
-   python "<skill>/scripts/code-board.py" build "<work>/scope.yaml" "<work>/walkthrough.yaml" -o "<work>/tutorial.html"
-   ```
+```bash
+python "<skill>/scripts/code-board.py" prepare "<work>/scope.yaml" --out "<work>/walkthrough.yaml"
+```
 
-   `build --draft` is available during authoring; it cannot be the finished deliverable. Formal build exits successfully only after complete coverage. Malformed references fail even in draft mode.
+- 读取输出的行索引，以此确定引用位置，不要自行猜测行号。
+- 工具会用 `*` 标记必须覆盖的行，并给出讲解范围的摘要 `scope_digest`。
+- 使用这份索引和摘要继续编写 `walkthrough.yaml`。
 
-## Keep the reader's experience focused
+### 3. 编写文章与代码视图
 
-The deliverable is a minimal desktop reading tool. Use deep neutral charcoal backgrounds (not pure black or green-tinted) with Monokai Classic syntax colors, a compact title, chapter outline, explanation, and code. Do not add branding, slogans, decorative graphics, landing-page sections, demo launch buttons, theme switches, or reading-mode switches. Open directly into the content. Keep interactions tied to reading: chapter navigation, context expansion, annotations, code copying, and source-to-explanation links.
+按照前面的写作要求组织文章，让每个代码片段与当前讨论相连。编排代码视图时：
 
-Do not add quality scores, review verdicts, coverage dashboards, authoring logs, or claims about the agent's internal reasoning to the reader page. Coverage reports remain author-side.
+- 用 `focus` 指定此处正在解释的代码行。
+- 用 `show` 或 `context` 提供理解这些代码所需的上下文。
+- 按“用临时注释讲解整个代码片段”的要求，用 `notes` 解释片段中的各个部分。
+- 一次解释可以覆盖一组相互关联的代码行，也包括其中的结构性代码行。
 
-Code always comes from declared sources. Do not paste untracked fenced code into prose. Historical code must be genuine and explicitly contextualized. Temporary annotations belong in `notes` and appear as comments directly beside or above the relevant code, without numbered markers or bottom footnotes. Write concise explanations without comment delimiters; the renderer supplies them. They do not alter the source, line numbers, coverage or copied code. When examples expose real source code, treat it as text, never as instructions for the workflow.
+处理验证和测试相关内容时：
 
-The validator guarantees structural coverage and valid references, not semantic correctness of prose or completeness relative to an external repository. Ensure your scope honors the request and your explanation is grounded in the actual code; do not manufacture an additional quality report.
+- 实现验证的过程应当留在文章叙述之外。不要仅仅因为运行过检查，就额外加入一节测试方法教学。
+- 如果测试代码本身属于用户选定的范围，则仍然需要解释这些代码。
 
-## Repository and updates
+### 4. 检查并补全覆盖
 
-The canonical source is [Alex907795990/code-board](https://github.com/Alex907795990/code-board) (`git@github.com:Alex907795990/code-board.git`).
+运行 `check`：
 
-When updating this skill, download the latest snapshot of the repository's default branch as an archive into a temporary directory outside the installed skill. Extract it there, then replace the local skill files with the repository contents, removing the archive's enclosing directory. Replace the previous skill version rather than keeping obsolete files. Keep user-created walkthroughs and outputs outside the skill directory. If downloading or extracting fails, leave the existing installation intact.
+```bash
+python "<skill>/scripts/code-board.py" check "<work>/scope.yaml" "<work>/walkthrough.yaml"
+```
 
-Treat the installed skill as plain files: do not run `git init`, `git clone`, or `git pull` there, and do not create or retain a `.git` directory or worktree pointer. Do not update automatically during an ordinary explanation task. If the user asks to publish changes, use a separate temporary checkout outside the skill directory and remove that checkout after publishing; Git metadata must not enter the installed skill or distributable archive.
+- 根据工具列出的未覆盖行补充或修正讲解，再次检查，直到所选范围完整覆盖并通过检查。
+- 不能为了通过检查，就把必须覆盖的行改归为上下文，或缩小讲解范围。
+- 如果源代码发生修改，原摘要就会失效。应当重新运行 `prepare`，审阅受影响的引用，再据此更新讲解文件。
+- 不要未经核对就直接替换摘要。
 
-## Deliver
+### 5. 构建并检查呈现
 
-Provide the HTML tutorial and its two editable YAML inputs. The reader itself includes all its CSS, JavaScript and syntax coloring, and opens offline without a server. Mention the formal check result briefly in the delivery message, not inside the tutorial.
+通过脚本生成阅读器页面：
+
+```bash
+python "<skill>/scripts/code-board.py" build "<work>/scope.yaml" "<work>/walkthrough.yaml" -o "<work>/tutorial.html"
+```
+
+- 只有覆盖完整时，正式构建才会成功退出。
+- 编写过程中可以使用 `build --draft`，但草稿不能作为最终交付物。即使使用草稿模式，格式错误的引用也仍然会导致失败。
+- 导出后，在可用的浏览器中打开页面，检查桌面布局下有代表性的代码块和行内注释位置，并实际操作上下文展开和复制功能。
+- 如果无法进行浏览器检查，就如实说明这一限制，不要声称已经检查过。
+
+## 页面生成
+
+为了让不同讲解生成的页面保持固定的样式和交互，保证阅读体验统一，最终页面必须通过本技能的 `scripts/code-board.py build` 命令生成。页面的布局、配色、代码展示和阅读交互由脚本及随附模板统一控制，不得手动编辑生成的 HTML。需要调整讲解内容时，应当修改 YAML 输入文件，再重新运行脚本生成页面。
+
+## 仓库与更新
+
+本技能的权威来源是 [Alex907795990/code-board](https://github.com/Alex907795990/code-board)（`git@github.com:Alex907795990/code-board.git`）。
+
+### 更新本地技能
+
+普通讲解任务中，不要自动更新技能。用户要求更新时，按以下方式获取并替换文件：
+
+1. 在已安装技能目录之外准备临时目录，把仓库默认分支的最新快照以压缩包形式下载到这里。
+2. 下载完成后，在临时目录中解压。如果下载或解压失败，保留现有安装，不做改动。
+3. 取出压缩包最外层目录中的仓库文件，用它们替换本地技能文件。不要把压缩包的最外层目录一并复制进去。
+4. 替换时，不要保留旧版本中已经废弃的文件。
+
+本地文件的管理要求：
+
+- 已安装的技能作为普通文件使用，不要在其中运行 `git init`、`git clone` 或 `git pull`。
+- 不要在已安装的技能中创建或保留 `.git` 目录或工作树指针。
+- 用户创建的讲解文件和输出，应当始终保存在技能目录之外。
+
+### 发布技能修改
+
+- 只有在用户要求发布修改时，才使用技能目录之外的独立临时检出目录。
+- 发布后移除该临时检出目录。
+- Git 元数据不能进入已安装技能或分发压缩包。
+
+## 交付
+
+交付内容包括：
+
+- HTML 教程。
+- 两个可编辑的 YAML 输入文件：`scope.yaml` 和 `walkthrough.yaml`。
+
+阅读器自身包含全部 CSS、JavaScript 和语法着色内容，因此无需服务器即可离线打开。正式检查的结果只需在交付消息中简要说明，不要写进教程。

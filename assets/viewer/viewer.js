@@ -198,6 +198,8 @@
         placeComments(card);
       });
       observer.observe(scroll);
+      // Embedded fonts can change text widths without changing the viewport width.
+      document.fonts?.addEventListener('loadingdone', () => placeComments(card));
     }
     if(model.caption) card.node.append(el('figcaption','code-caption',model.caption));
     return card.node;

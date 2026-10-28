@@ -1,4 +1,4 @@
 interface:
   display_name: "code-board"
-  short_description: "Build progressive code tutorials with checked line coverage"
-  default_prompt: "Use $code-board to turn this code or change set into a progressive HTML tutorial with complete checked coverage."
+  short_description: "生成循序渐进的代码讲解，并通过工具检查每一行代码的讲解覆盖度"
+  default_prompt: "请使用 $code-board，为这份代码或这组改动编写循序渐进的 HTML 讲解，并通过覆盖度检查，确认所选范围内的每一行都已得到讲解。"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import html
 import json
@@ -386,8 +387,13 @@ def render(model):
         template = (base / "index.html").read_text(encoding="utf-8")
         style = (base / "viewer.css").read_text(encoding="utf-8")
         script = (base / "viewer.js").read_text(encoding="utf-8")
+        font = (PACKAGE / "assets" / "fonts" / "FiraCode-VF.woff2").read_bytes()
+        font_license = (PACKAGE / "assets" / "fonts" / "OFL-FiraCode.txt").read_text(encoding="utf-8")
     except OSError as exc:
         raise InputError(f"Missing reader assets: {exc}") from exc
+    if style.count("{{CODE_FONT}}") != 1:
+        raise InputError("Reader CSS must contain exactly one {{CODE_FONT}} marker.")
+    style = style.replace("{{CODE_FONT}}", base64.b64encode(font).decode("ascii"))
     for marker in ("{{STYLE}}", "{{MODEL}}", "{{SCRIPT}}"):
         if template.count(marker) != 1:
             raise InputError(f"Reader template must contain exactly one {marker} marker.")
@@ -395,7 +401,8 @@ def render(model):
     data = json.dumps(model, ensure_ascii=False, separators=(",", ":"))
     data = data.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     data = data.replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
-    styles = HtmlFormatter(style="friendly").get_style_defs(".syntax") + "\n" + style
+    styles = (HtmlFormatter(style="friendly").get_style_defs(".syntax")
+              + "\n/*\n" + font_license + "\n*/\n" + style)
     # Substitute once, so authored text resembling a marker cannot trigger another replacement.
     return re.sub(r"\{\{(STYLE|MODEL|SCRIPT)\}\}",
                   lambda m: {"STYLE": styles, "MODEL": data, "SCRIPT": script}[m[1]], template)
