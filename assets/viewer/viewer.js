@@ -26,6 +26,7 @@
   $('#tutorial-subtitle').textContent = data.subtitle || '';
   $('#tutorial-intro').innerHTML = data.intro_html || '';
   $('#draft-badge').hidden = !data.draft;
+  $('#draft-badge').textContent = data.mode === 'draft' ? '草案' : '草稿';
   function toast(text) {
     const node = $('#toast');
     node.textContent = text;
@@ -90,7 +91,7 @@
       commentRow.append(comment);
       root.append(commentRow);
       // A block annotation stays above its first anchor. A single short note can sit beside the code.
-      const canInline = notes.length === 1 && note.lines.length === 1 && body.children.length === 1 && body.firstElementChild.tagName === 'P';
+      const canInline = !card.node.classList.contains('document-code') && notes.length === 1 && note.lines.length === 1 && body.children.length === 1 && body.firstElementChild.tagName === 'P';
       card.comments.push({row, commentRow, comment, canInline});
     });
     root.append(row);
@@ -175,6 +176,7 @@
 
   function createCard(model) {
     const card={model,node:el('figure','code-card'),visible:new Set(),expanded:new Set()};
+    if (data.mode === 'draft' && /^(markdown|md)$/i.test(model.language || '')) card.node.classList.add('document-code');
     card.node.id=`code-board-code--${model.id}`;
     const toolbar=el('div','code-toolbar');
     const sourceButton=el('button','source-button');
@@ -195,12 +197,12 @@
       item.append(el('span', className), el('span', '', label));
       legend.append(item);
     };
-    if (focused.some(line => line.operation === 'add')) addLegend('legend-dot', '新增');
+    if (focused.some(line => line.operation === 'add')) addLegend('legend-dot', data.mode === 'draft' ? '计划新增' : '新增');
     if (focused.some(line => line.operation === 'code')) addLegend('legend-dot', '本步讲解');
     if (focused.some(line => line.operation === 'context')) {
-      addLegend(model.kind === 'history' ? 'legend-dot' : 'legend-dot existing', model.kind === 'history' ? '本步中间实现' : '已有代码');
+      addLegend(model.kind === 'history' ? 'legend-dot' : 'legend-dot existing', model.kind === 'history' ? '本步中间实现' : data.mode === 'draft' ? '讲解重点' : '已有代码');
     }
-    if (focused.some(line => line.operation === 'delete')) addLegend('legend-dot delete', '删除');
+    if (focused.some(line => line.operation === 'delete')) addLegend('legend-dot delete', data.mode === 'draft' ? '计划删除' : '删除');
     if (model.lines.some(line => !line.focus)) addLegend('legend-context', '上下文');
     if (legend.childElementCount) card.node.append(legend);
     const scroll=el('div','code-scroll');scroll.setAttribute('tabindex','0');scroll.setAttribute('role','region');scroll.setAttribute('aria-label',`${model.label || model.source} 代码片段，可横向滚动`);

@@ -109,6 +109,9 @@ h1 { margin:0; font-size:28px; font-weight:600; line-height:1.5; }
 .line-number{font:10px/27px var(--mono);text-align:right;padding-right:13px;color:var(--code-muted);user-select:none}
 .line-code{font:14px/27px var(--mono);font-variant-ligatures:none;white-space:pre;tab-size:4;color:var(--ink);display:flex;align-items:baseline;min-height:27px}
 .line-code>code{font:inherit;white-space:pre}
+.document-code .code-line{width:100%;grid-template-columns:17px 36px minmax(0,1fr)}
+.document-code .line-code{display:block;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.document-code .line-code>code{white-space:pre-wrap}
 .code-line.focus,.code-comment-row.focus{background:var(--code-focus-bg);border-left-color:var(--accent)}
 .code-line.focus .line-operation,.code-line.focus .line-number{color:var(--accent)}
 .code-line.focus.existing,.code-comment-row.focus.existing{background:var(--existing-soft);border-left-color:var(--existing)}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare, validate and render source-bound, step-by-step code tutorials."""
+"""Render lightweight work proposals or prepare and validate source-bound code tutorials."""
 from __future__ import annotations
 
 import argparse
@@ -381,6 +381,95 @@ def compile_tutorial(scope, raw):
     return model, report
 
 
+def compile_draft(raw):
+    """Compile inline planning fragments without source collection or coverage accounting."""
+    mapping(raw, "draft", {"version", "mode", "title", "subtitle", "intro", "language", "steps"},
+            {"mode", "title", "steps"})
+    version(raw.get("version", 1), "draft.version")
+    if raw["mode"] != "draft":
+        raise InputError("The draft command requires mode: draft.")
+    sources, steps, step_ids = [], [], set()
+    for index, step in enumerate(sequence(raw["steps"], "draft.steps", True)):
+        where = f"steps[{index}]"
+        mapping(step, where, {"id", "title", "summary", "content"}, {"title", "content"})
+        sid = identifier(step.get("id", f"step-{index + 1}"), where + ".id")
+        if sid in step_ids:
+            raise InputError(f"Duplicate step id: {sid}")
+        step_ids.add(sid)
+        compiled = {"id": sid, "title": text(step["title"], where + ".title"),
+                    "summary": text(step.get("summary", ""), where + ".summary", True), "content": []}
+        for nindex, node in enumerate(sequence(step["content"], sid + ".content", True)):
+            nwhere = f"{sid}.content[{nindex}]"
+            mapping(node, nwhere, {"text", "callout", "code"})
+            if len(node) != 1:
+                raise InputError(f"{nwhere}: each node needs exactly one of text, callout or code.")
+            if "text" in node:
+                compiled["content"].append({"type": "text", "html": markdown(text(node["text"], nwhere))})
+                continue
+            if "callout" in node:
+                value = node["callout"]
+                mapping(value, nwhere, {"tone", "title", "text"}, {"text"})
+                tone = value.get("tone", "note")
+                if tone not in ("note", "question", "tip"):
+                    raise InputError(f"{nwhere}: unsupported callout tone.")
+                compiled["content"].append({"type": "callout", "tone": tone,
+                    "title": text(value.get("title", ""), nwhere + ".title", True),
+                    "html": markdown(text(value["text"], nwhere + ".text"))})
+                continue
+            value = node["code"]
+            mapping(value, nwhere, {"kind", "language", "label", "content", "focus", "show", "caption", "notes"},
+                    {"content"})
+            kind = value.get("kind", "code")
+            if kind not in ("code", "diff"):
+                raise InputError(f"{nwhere}: draft fragments use kind: code or diff.")
+            content = text(value["content"], nwhere + ".content")
+            parts = content.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+            if parts[-1] == "":
+                parts.pop()
+            rows = []
+            for number, line in enumerate(parts, 1):
+                operation, body = "context", line
+                if kind == "diff":
+                    if not line or line[0] not in " +-" or line.startswith(("+++ ", "--- ")):
+                        raise InputError(f"{nwhere}:{number}: use ' ', '+' or '-' prefixes, without diff headers.")
+                    operation, body = {"+": "add", "-": "delete", " ": "context"}[line[0]], line[1:]
+                rows.append({"number": number, "text": body, "operation": operation})
+            size = len(rows)
+            default_focus = "all" if kind == "code" else [r["number"] for r in rows if r["operation"] != "context"]
+            focus = select(value.get("focus", default_focus), size, nwhere + ".focus")
+            show = select(value.get("show", "all"), size, nwhere + ".show")
+            if not show or not focus <= show:
+                raise InputError(f"{nwhere}: show must be nonempty and include every focused line.")
+            code_id = f"{sid}-code-{nindex + 1}"
+            notes = []
+            for aindex, note in enumerate(sequence(value.get("notes", []), nwhere + ".notes")):
+                mapping(note, nwhere + ".note", {"lines", "text"}, {"lines", "text"})
+                anchors = select(note["lines"], size, nwhere + ".note.lines")
+                if not anchors or not anchors <= show:
+                    raise InputError(f"{nwhere}: note anchors must be nonempty and initially visible.")
+                notes.append({"id": f"{code_id}-note-{aindex + 1}", "lines": sorted(anchors),
+                              "html": markdown(text(note["text"], nwhere + ".note.text"))})
+            source = {"id": code_id, "kind": "diff" if kind == "diff" else "context",
+                      "label": text(value.get("label", "代码片段"), nwhere + ".label"),
+                      "language": text(value.get("language", "text"), nwhere + ".language"),
+                      "path": "", "lines": rows}
+            styled = highlight_lines(source)
+            source["lines"] = [row | {"html": styled[i], "first_step": sid if row["number"] in focus else None}
+                               for i, row in enumerate(rows)]
+            sources.append(source)
+            compiled["content"].append({"type": "code", "id": code_id, "source": code_id,
+                "label": source["label"], "language": source["language"], "kind": source["kind"],
+                "caption": text(value.get("caption", ""), nwhere + ".caption", True),
+                "show": sorted(show), "notes": notes,
+                "lines": [row | {"focus": row["number"] in focus} for row in source["lines"]]})
+        steps.append(compiled)
+    return {"title": text(raw["title"], "title"),
+            "subtitle": text(raw.get("subtitle", ""), "subtitle", True),
+            "intro_html": markdown(text(raw.get("intro", ""), "intro", True)),
+            "language": text(raw.get("language", "zh-CN"), "language"),
+            "sources": sources, "steps": steps, "mode": "draft", "draft": True}
+
+
 def render(model):
     base = PACKAGE / "assets" / "viewer"
     try:
@@ -443,6 +532,9 @@ def main(argv=None):
     prepare.add_argument("scope")
     prepare.add_argument("--out", help="Create a skeleton at this path; existing files are never overwritten")
     prepare.add_argument("--json", action="store_true")
+    draft = commands.add_parser("draft", help="Render a lightweight proposal without coverage checks")
+    draft.add_argument("input", help="One YAML file with mode: draft and inline fragments")
+    draft.add_argument("-o", "--output", required=True)
     for name in ("check", "build"):
         sub = commands.add_parser(name)
         sub.add_argument("scope")
@@ -454,6 +546,13 @@ def main(argv=None):
             sub.add_argument("--draft", action="store_true", help="Allow incomplete coverage, not invalid references")
     args = parser.parse_args(argv)
     try:
+        if args.command == "draft":
+            if Path(args.input).resolve() == Path(args.output).resolve():
+                raise InputError("Output must not overwrite the draft input file.")
+            model = compile_draft(read_yaml(args.input))
+            write_output(args.output, render(model))
+            print(f"Draft: {Path(args.output).resolve()}")
+            return 0
         scope = load_scope(args.scope)
         if args.command == "prepare":
             if args.out:

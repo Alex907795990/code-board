@@ -287,6 +287,9 @@ h1 { margin:0; font-size:28px; font-weight:600; line-height:1.5; }
 .line-number{font:10px/27px var(--mono);text-align:right;padding-right:13px;color:var(--code-muted);user-select:none}
 .line-code{font:14px/27px var(--mono);font-variant-ligatures:none;white-space:pre;tab-size:4;color:var(--ink);display:flex;align-items:baseline;min-height:27px}
 .line-code>code{font:inherit;white-space:pre}
+.document-code .code-line{width:100%;grid-template-columns:17px 36px minmax(0,1fr)}
+.document-code .line-code{display:block;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.document-code .line-code>code{white-space:pre-wrap}
 .code-line.focus,.code-comment-row.focus{background:var(--code-focus-bg);border-left-color:var(--accent)}
 .code-line.focus .line-operation,.code-line.focus .line-number{color:var(--accent)}
 .code-line.focus.existing,.code-comment-row.focus.existing{background:var(--existing-soft);border-left-color:var(--existing)}
@@ -447,6 +450,7 @@ h1 { margin:0; font-size:28px; font-weight:600; line-height:1.5; }
   $('#tutorial-subtitle').textContent = data.subtitle || '';
   $('#tutorial-intro').innerHTML = data.intro_html || '';
   $('#draft-badge').hidden = !data.draft;
+  $('#draft-badge').textContent = data.mode === 'draft' ? '草案' : '草稿';
   function toast(text) {
     const node = $('#toast');
     node.textContent = text;
@@ -511,7 +515,7 @@ h1 { margin:0; font-size:28px; font-weight:600; line-height:1.5; }
       commentRow.append(comment);
       root.append(commentRow);
       // A block annotation stays above its first anchor. A single short note can sit beside the code.
-      const canInline = notes.length === 1 && note.lines.length === 1 && body.children.length === 1 && body.firstElementChild.tagName === 'P';
+      const canInline = !card.node.classList.contains('document-code') && notes.length === 1 && note.lines.length === 1 && body.children.length === 1 && body.firstElementChild.tagName === 'P';
       card.comments.push({row, commentRow, comment, canInline});
     });
     root.append(row);
@@ -596,6 +600,7 @@ h1 { margin:0; font-size:28px; font-weight:600; line-height:1.5; }
 
   function createCard(model) {
     const card={model,node:el('figure','code-card'),visible:new Set(),expanded:new Set()};
+    if (data.mode === 'draft' && /^(markdown|md)$/i.test(model.language || '')) card.node.classList.add('document-code');
     card.node.id=`code-board-code--${model.id}`;
     const toolbar=el('div','code-toolbar');
     const sourceButton=el('button','source-button');
@@ -616,12 +621,12 @@ h1 { margin:0; font-size:28px; font-weight:600; line-height:1.5; }
       item.append(el('span', className), el('span', '', label));
       legend.append(item);
     };
-    if (focused.some(line => line.operation === 'add')) addLegend('legend-dot', '新增');
+    if (focused.some(line => line.operation === 'add')) addLegend('legend-dot', data.mode === 'draft' ? '计划新增' : '新增');
     if (focused.some(line => line.operation === 'code')) addLegend('legend-dot', '本步讲解');
     if (focused.some(line => line.operation === 'context')) {
-      addLegend(model.kind === 'history' ? 'legend-dot' : 'legend-dot existing', model.kind === 'history' ? '本步中间实现' : '已有代码');
+      addLegend(model.kind === 'history' ? 'legend-dot' : 'legend-dot existing', model.kind === 'history' ? '本步中间实现' : data.mode === 'draft' ? '讲解重点' : '已有代码');
     }
-    if (focused.some(line => line.operation === 'delete')) addLegend('legend-dot delete', '删除');
+    if (focused.some(line => line.operation === 'delete')) addLegend('legend-dot delete', data.mode === 'draft' ? '计划删除' : '删除');
     if (model.lines.some(line => !line.focus)) addLegend('legend-context', '上下文');
     if (legend.childElementCount) card.node.append(legend);
     const scroll=el('div','code-scroll');scroll.setAttribute('tabindex','0');scroll.setAttribute('role','region');scroll.setAttribute('aria-label',`${model.label || model.source} 代码片段，可横向滚动`);
